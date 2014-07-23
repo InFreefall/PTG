@@ -1,0 +1,118 @@
+'''
+Created on Jul 13, 2011
+
+@author: mitchell
+'''
+from Models.QCard import QCard
+from Models.QCardModel import QCardModel
+import random
+import os
+import statedb
+
+basicLand = [('m11',230),('m11',237),('m11',239),('m11',244),('m11',246)]
+
+class QDeck(QCardModel):
+    def __init__(self, parent, controllable, preferredCardHeight=170,game="Magic"):
+        QCardModel.__init__(self, parent, controllable, preferredCardHeight)
+        if game == 'Magic':
+            self.db = statedb.commonDB()
+        elif game == 'Yu-Gi-Oh':
+            self.db = statedb.commonDB('yugioh.sqlite3')
+        self.commander = None
+        self.game = game
+    
+    def shuffle(self):
+        # TODO: Notify others using beginMoveRows or somthing
+        random.shuffle(self.list)
+    
+    def removeCommanderFromDeck(self):
+        for card in self.list:
+            if self.db.nameForAbbreviationIndex(card.abbreviation, card.index) == self.commander:
+                self.removeItem(card)
+                return card
+    
+    def loadFromFile(self, filename, absolute=False):
+        self.name = filename
+        if absolute:
+            file = open(filename)
+        elif self.game == 'Magic':
+            file = open(os.path.join('src','userdata','decks',filename))
+        elif self.game == 'Yu-Gi-Oh':
+            file = open(os.path.join('src','userdata','ygoDecks',filename))
+        line = file.readline()
+        if line.startswith("timeStamp:"):
+            line = file.readline()
+        while line != "":
+            if line.strip() == '' or line.strip()[0] == '#':
+                line = file.readline()
+                continue
+            if line.strip().startswith("Commander:"):
+                self.commander = line.strip()[len("Commander:"):].strip()
+                print "Commander is %s" % (self.commander)
+                line = file.readline()
+                continue
+            parts = line.split(' x ')
+            cardName = line.rstrip()
+            numCards = 1
+            if len(parts) is not 1:
+                cardName = parts[1].rstrip()
+                numCards = parts[0].rstrip()
+            parts = cardName.split('/')
+            abbreviation = ""
+            index = ""
+            if len(parts) is not 1 and parts[0] == "cards":
+                abbreviation = parts[1]
+                index = parts[2]
+                self.addItem(QCard(abbreviation,index))
+            else:
+                try:
+                    for i in range(0,int(numCards)): #@UnusedVariable
+                        try:
+                            abbreviation, index = self.db.findCard(cardName)
+                        except:
+                            import cardCrawler
+                            cardCrawler.crawlCardName(cardName)
+                            abbreviation, index = self.db.findCard(cardName)
+                        self.addItem(QCard(abbreviation,index))
+                except Exception:
+                    print "Error: could not load card %s" % (cardName)
+                    print "Probably a misspelling or something"
+            line = file.readline()
+        self.shuffle()
+    
+    def drawCard(self):
+        if len(self.list) is 0:
+            return -1, -1
+        card = self.list[-1]
+        self.removeItem(card)
+        return card.abbreviation, card.index
+    
+    def makeBoosterFromAbbreviation(self, abbreviation, land=True):
+        # Assume 15 cards:
+        #   1  basic land
+        #   10 commons
+        #   3  uncommons
+        #   1  rare (1 in 8 is a mythic rare)
+        
+        cards = []
+        for i in range(0,10): #@UnusedVariable
+            cards.append(random.choice(self.db.cardListWithAbbreviationRarity(abbreviation, 'Common')))
+        for i in range(0,3): #@UnusedVariable
+            cards.append(random.choice(self.db.cardListWithAbbreviationRarity(abbreviation, 'Uncommon')))
+        mythic = False
+        if random.randint(0,7) == 0:
+            try:
+                cards.append(random.choice(self.db.cardListWithAbbreviationRarity(abbreviation, 'Mythic Rare')))
+                mythic = True
+            except:
+                # No mythic rares available in this expansion
+                pass
+        if mythic == False:
+            cards.append(random.choice(self.db.cardListWithAbbreviationRarity(abbreviation, 'Rare')))
+        if land:
+            try:
+                cards.append(random.choice(self.db.cardListWithAbbreviationRarity(abbreviation, 'Land')))
+            except:
+                cards.append(random.choice(self.db.cardListWithAbbreviationRarity('m11', 'Land')))
+                #Basic land is the same in anything, and this abbreviation has no basic land
+        return cards

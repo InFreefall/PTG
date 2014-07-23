@@ -1,0 +1,5 @@
+*Equpiment
+*Give card to other player
+*Take card from bottom of library
+*2HG share HP totals
+*2HG splitscreen

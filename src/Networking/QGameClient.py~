@@ -1,0 +1,150 @@
+import os
+import sys
+import settingsManager
+sys.path.append('gen-py')
+
+from EventBasedClient import EventBasedClient
+
+from PTG import PTG
+
+HAND=0
+DECK=1
+GRAVEYARD=2
+EXILE=3
+CREATURES=4
+LANDS=5
+
+switchToZones = (2,3,4,5)
+
+class QGameClient(EventBasedClient):
+    def __init__(self, delegate, gameID):
+        EventBasedClient.__init__(self, PTG.Client, settingsManager.settings['hostname'], 42142, delegate)
+        self.delegate = delegate
+        self.gameID = gameID
+        
+        self.addMapping("addPlayer", self.eventAddPlayer)
+        self.addMapping("removePlayer", self.eventRemovePlayer)
+        self.addMapping("setDeck", self.eventSetDeck)
+        self.addMapping("setLife", self.eventSetLife)
+        self.addMapping("setPoison", self.eventSetPoison)
+        self.addMapping("reveal", self.eventReveal)
+        self.addMapping("removeCardFrom", self.eventRemoveCardFrom)
+        self.addMapping("addCardTo", self.eventAddCardTo)
+        self.addMapping("setCardTo", self.eventSetCardTo)
+        self.addMapping("playSound", self.eventPlaySound)
+    
+    def eventAddPlayer(self, event):
+        self.delegate.registerPlayer(event.sender, event.data[1], int(event.data[2]))
+    
+    def eventRemovePlayer(self, event):
+        self.delegate.unregisterPlayer(event.sender)
+        
+    def eventSetDeck(self, event):
+        self.delegate.setPlayerDeck(event.sender, event.data[0], int(event.data[1]))
+        
+    def eventSetLife(self, event):
+        self.delegate.setPlayerLife(event.sender, int(event.data[0]))
+        
+    def eventSetPoison(self, event):
+        self.delegate.setPlayerPoison(event.sender, int(event.data[0]))
+        
+    def eventReveal(self, event):
+        self.delegate.revealCard(event.data[0], event.data[1], event.senderName)
+    
+    def eventRemoveCardFrom(self, event):
+        self.delegate.removeCardFrom(event.sender, event.data[0], event.data[1])
+    
+    def eventAddCardTo(self, event):
+        self.delegate.addCardTo(event.sender, event.data[0], event.data[1], event.data[2])
+    
+    def eventSetCardTo(self, event):
+        self.delegate.setCardTo(event.sender, event.data[0], event.data[1], event.data[2])
+
+    def eventPlaySound(self, event):
+        self.delegate.playSound(event.data[0])
+        
+    
+    ###################################################
+    ### Functions called by the client program ########
+    ### Not event-based ###############################
+    ###################################################
+    
+    
+    def addToBattle(self, username, team):
+        self.playerID = self.client.registerPlayer(self.gameID, username, team)
+        self.username = username
+        self.startEventLoop(self.getEventsProxy)
+    
+    def getEventsProxy(self, lastEventIndex):
+        return self.client.getEvents(self.gameID, lastEventIndex)
+    
+    def setDeck(self, deckName, deckSize):
+        self.client.setDeck(self.gameID, self.playerID, deckName, int(deckSize))
+    
+    def tapCard(self, card):
+        self.moveCard(card.abbreviation, card.index, card.position, card.position, card.tapped)
+    
+    def setLife(self, life):
+        self.client.setLife(self.gameID, self.playerID, int(life))
+    
+    def setPoison(self, poison):
+        self.client.setPoison(self.gameID, self.playerID, int(poison))
+    
+    def reveal(self, abbreviation, index):
+        self.client.reveal(self.gameID, self.playerID, abbreviation, index)
+    
+    def removeCardFrom(self, zone, position):
+        self.client.removeCardFrom(self.gameID, self.playerID, zone, position)
+    
+    def addCardTo(self, card, zone, position):
+        self.client.addCardTo(self.gameID, self.playerID, card, zone, position)
+    
+    def setCardTo(self, card, zone, position):
+        self.client.setCardTo(self.gameID, self.playerID, card, zone, position)
+
+    def sendPlaySound(self, soundFile):
+        self.client.event("playSound", self.gameID, self.playerID, [soundFile])
+    
+    def syncDecks(self):
+        localDecks = os.listdir(os.path.join('src',"userdata",'decks'))
+        remoteDecks = self.client.listDecks()
+        for ld in localDecks:
+            if ld in ("Draft"):
+                continue
+            f = open(os.path.join('src','userdata','decks', ld), 'r')
+            line = f.readline()
+            if line.startswith('timeStamp:'):
+                f.close()
+                continue
+            f.seek(0)
+            self.client.saveDeck(ld, f.read())
+            f.close()
+        for rd in remoteDecks:
+            deckContents = self.client.getDeck(rd)
+            try:
+                f = open(os.path.join('src','userdata','decks', rd), 'r')
+                firstLine = f.readline()
+                f.close()
+                if not firstLine.startswith('timeStamp:'):
+                    # Don't overwrite a non-timestamped deck
+                    continue
+                localTime = float(firstLine.split(':')[-1])
+                serverTime = float(deckContents.split('\n')[0].split(":")[-1])
+                if serverTime > localTime:
+                    f = open(os.path.join('src','userdata','decks', rd), 'w')
+                    f.write(deckContents)
+                    f.close()
+            except:
+                f = open(os.path.join('src','userdata','decks', rd), 'w')
+                f.write(deckContents)
+                f.close()
+    
+    def disconnect(self):
+        self.endEventLoop()
+        self.client.unregisterPlayer(self.gameID, self.playerID)
+        self.transport.close()
+        self.client = None
+        print "Disconnected"
+    
+    def VERSION(self):
+        return self.client.VERSION()

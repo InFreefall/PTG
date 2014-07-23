@@ -1,0 +1,7 @@
+*.pyc
+*.swp
+/src\cards
+src/cards
+src/userdata*
+src/userdata/
+src/userdata/PTG.settings

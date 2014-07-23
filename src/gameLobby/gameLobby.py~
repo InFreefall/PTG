@@ -1,0 +1,170 @@
+#!/Library/Frameworks/Python.framework/Versions/2.7/bin/python
+
+# Needs to be first - settingsManager tries to use this directory on import
+import os
+userdataPath = os.path.join('src','userdata','decks')
+try:
+    print "Trying to create userdata directory"
+    os.makedirs(userdataPath)
+except OSError:
+    pass # Directory already exists
+
+
+import sys
+from QDeckAnalysis import QDeckAnalysis
+sys.path.append('../gen-py')
+
+from Networking import GLclient
+
+# Dialogs
+from createGameWindow import CreateGameWindow
+from inGameDialog import InGameDialog
+from QSettingsDialog import QSettingsDialog
+
+from PyQt4.QtGui import *
+from PyQt4.QtCore import *
+from UI_gameLobby import Ui_MainWindow
+
+from PTG import PTG
+from PTG.ttypes import *
+from thrift.transport import TSocket
+from thrift.transport import TTransport
+from thrift.protocol import TBinaryProtocol
+
+from util import utilities
+import settingsManager
+import crashReporter
+
+class GameLobby(QMainWindow, Ui_MainWindow):
+    def __init__(self, parent=None):
+        super(GameLobby, self).__init__()
+        self.setupUi(self)
+        
+        self.setupMenus()
+        
+        self.connect(self.btnCreateGame, SIGNAL('clicked()'), self.displayWindow)
+        self.connect(self.btnJoinGame, SIGNAL('clicked()'), self.joinGameButtonClicked)
+        
+        self.client = GLclient.Client(self)
+        
+        self.show()
+        self.raise_()  # Make sure my window is on top
+        text = QInputDialog.getText(self, 'Enter Username', 'Please enter your username:')[0]
+        if not text == "":
+            self.username = text
+        else:
+            self.username = "Anonymous"
+        crashReporter.username = self.username
+        self.client.register(self.username)
+        
+        if self.username == "your username:":
+            QMessageBox.information(self, "Well Done!", "I see what you did there.", buttons=QMessageBox.Ok, defaultButton=QMessageBox.Ok)
+        
+        self.lvGames.setModel(self.client.gameModel)
+        self.lvPlayers.setModel(self.client.playerModel)
+    
+    def setupMenus(self):
+        bar = self.menuBar()
+        tools = bar.addMenu("&Tools")
+        tools.addAction("Deck Analyzer", self.showAnalysis)
+        tools.addAction("Preferences",self.showSettings)
+    
+    def showSettings(self):
+        dialog = QSettingsDialog(self)
+        dialog.show()
+    
+    def showAnalysis(self):
+        dialog = QDeckAnalysis(self)
+        dialog.show()
+        
+    def displayWindow(self):
+        self.cgw = CreateGameWindow(self)
+        self.cgw.setUsername(self.username)
+        self.connect(self.cgw, SIGNAL('accepted()'), self.addNewGame)
+        self.connect(self.cgw, SIGNAL('rejected()'), self.cancelNewGame)
+        self.cgw.show()
+    
+    def addNewGame(self):
+        gameName = self.cgw.gameName.text()
+        gameType = self.cgw.type
+        game = self.client.createGame(gameName, gameType, self.cgw.expansionsModel.list)
+        self.cgw = None
+        self.joinGame(game)
+    
+    def joinGameButtonClicked(self):
+        selectedIndex = self.lvGames.selectedIndexes()[0]
+        row = selectedIndex.row()
+        game = self.client.gameModel.list[row]
+        self.joinGame(game)
+    
+    def joinGame(self, game):
+        self.client.joinGame(game)
+        igd = InGameDialog(self.client, self)
+        igd.setGame(game)
+        self.connect(igd, SIGNAL('finished(int)'), self, SLOT('show()'))
+        self.hide()
+        igd.show()
+        
+    def cancelNewGame(self):
+        self.cgw = None
+    
+    def connectToServer(self, hostname):
+        settingsManager.settings['hostname'] = hostname
+        self.client = GLclient.Client(self)
+        
+        if self.client.VERSION() != utilities.VERSION():
+            # Version mismatch - cannot connect to this server
+            pass
+        
+        self.client.register(self.username)
+
+def maintenance():
+    if not settingsManager.settings['hasMovedDecks']:
+        try:
+            os.mkdir(os.path.join('src','userdata','decks'))
+        except OSError:
+            pass # The directory was already created for some reason
+        for file in os.listdir(os.path.join('src','userdata')):
+            old = os.path.join('src','userdata',file)
+            new = os.path.join('src','userdata','decks',file)
+            if not file == "PTG.settings" and os.path.isfile(old):
+                try:
+                    os.rename(old, new)
+                except:
+                    import pdb;pdb.set_trace()
+        settingsManager.settings['hasMovedDecks'] = True
+        settingsManager.save()
+
+def main():
+    crashReporter.install_excepthook()
+    maintenance()
+    app = QApplication(sys.argv)
+    ableToRun = True
+    try:
+        transport = TSocket.TSocket(settingsManager.settings['hostname'], 42142)
+        transport = TTransport.TBufferedTransport(transport)
+        protocol = TBinaryProtocol.TBinaryProtocol(transport)
+        client = PTG.Client(protocol)
+        transport.open()
+        print "Server version: ", client.VERSION()
+        print "My version: ", utilities.VERSION(), "\n"
+    except Exception, ex:
+        QMessageBox.critical(None,"Critical Error!","Mitchell is probably not running the server.")
+        print ex
+        ableToRun = False
+    if client.VERSION() != utilities.VERSION():
+        ableToRun = False
+        print "Houston, we have a problem. Version mismatch."
+        QMessageBox.critical(None,"Critical Error!","You gotta update the app! Mitchell changed something big, and you won't be able to play until you update it!")
+    transport.close()
+    iconPath = "icon.png"
+    app.setWindowIcon(QIcon(iconPath))
+    result = 1
+    if ableToRun:
+        lobbyWindow = GameLobby()
+        result = app.exec_()
+        lobbyWindow.client.disconnect()
+    sys.exit(result)
+
+if __name__ == '__main__':
+    main()

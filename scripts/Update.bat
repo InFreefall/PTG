@@ -1,0 +1,2 @@
+cd WinUpdate
+update.bat

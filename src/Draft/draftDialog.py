@@ -1,0 +1,163 @@
+#!/Library/Frameworks/Python.framework/Versions/2.7/bin/python
+
+import os
+import statedb
+import sys
+import Models.QDeck
+from PyQt4.QtGui import *
+from PyQt4.QtCore import *
+from UI_draftUI import Ui_DraftDialog
+from Draft import DraftModel
+from expansionPicker import ExpansionPicker
+from util import utilities
+
+class DraftDialog(QDialog, Ui_DraftDialog):
+    def __init__(self, client, parent=None):
+        QDialog.__init__(self, parent)
+        self.setupUi(self)
+        self.lblWaiting.hide()
+        
+        self.client = client
+        self.deletesListener = False
+        
+        self.connect(self.btnAdd, SIGNAL('clicked()'), self.addCard)
+        self.connect(self.btnRemove, SIGNAL('clicked()'), self.removeCard)
+        self.connect(self.btnPass, SIGNAL('clicked()'), self.passPack)
+        self.connect(self.debugButton, SIGNAL('clicked()'), utilities.set_trace)
+        
+        self.availableModel = DraftModel.DDraftModel(self)
+        self.lvCards.setModel(self.availableModel)
+        
+        self.deckModel = DraftModel.DDraftModel(self)
+        self.lvDeck.setModel(self.deckModel)
+        
+        self.readyForNextPack = False
+        self.pickingLand = False
+        self.packsWaiting = []
+        self.cardThatWasPicked = None
+        self.lblSender.setText("You opened:")
+    
+    def setExpansions(self, expansions):
+        self.expansions = expansions
+        self.expansions.append('land')
+        self.nextExpansion()
+        
+    def nextExpansion(self):
+        self.readyForNextPack = False
+        if not self.expansions[0] == "land":
+            self.availableModel.list = Models.QDeck.QDeck(None,True).makeBoosterFromAbbreviation(self.expansions[0], False)
+            self.availableModel.reset()
+            del self.expansions[0]
+            self.lblRemaining.setText("Remaining Packs: %s" % (' '.join(self.expansions)))
+        else:
+            self.availableModel.list = Models.QDeck.basicLand
+            self.availableModel.reset()
+            self.pickingLand = True
+            self.btnPass.setText("Done")
+    
+    def addCard(self):
+        if self.cardThatWasPicked is not None and not self.pickingLand:
+            return
+        for index in self.lvCards.selectedIndexes():
+            item = self.availableModel.list[index.row()]
+            self.deckModel.addItem(item)
+            if not self.pickingLand:
+                self.availableModel.removeItem(item)
+            self.cardThatWasPicked = item
+    
+    def removeCard(self):
+        if self.cardThatWasPicked is None and not self.pickingLand:
+            return
+        for index in self.lvDeck.selectedIndexes():
+            item = self.deckModel.list[index.row()]
+            if item is not self.cardThatWasPicked:
+                return
+            self.deckModel.removeItem(item)
+            if not self.pickingLand:
+                self.availableModel.addItem(item)
+            self.cardThatWasPicked = None
+    
+    def passPack(self):
+        if self.pickingLand:
+            print "Done drafting"
+            db = statedb.Database()
+            filename = "Draft"
+            with open(os.path.join('src','userdata','decks',filename), 'w') as f:
+                for card in self.deckModel.list:
+                    f.write(db.nameForAbbreviationIndex(card[0], card[1]) + "\n")
+            QMessageBox.information(self.parent(), "Draft Done!", "Now you must run PTG and select the 'Draft' deck.", buttons=QMessageBox.Ok, defaultButton=QMessageBox.Ok)
+            self.accept()
+            return
+        
+        if self.cardThatWasPicked is None:
+            return
+        
+        self.readyForNextPack = True
+        self.cardThatWasPicked = None
+        
+        if len(self.availableModel.list) == 1:
+            # On the last card of this expansion
+            self.btnPass.setText("Open Next Pack")
+        
+        if len(self.availableModel.list) == 0:
+            self.btnPass.setText("Pass Pack")
+            self.nextExpansion()
+        else:
+            self.client.passExpansion(self.stringForExpansion())
+            self.setExpansionFromString("")
+            self.checkForPass()
+    
+    def expansionPassedToMe(self, expansion, whoFrom):
+        self.whoFrom = whoFrom
+        self.packsWaiting.append(expansion)
+        self.checkForPass()
+    
+    def checkForPass(self):
+        if self.readyForNextPack and len(self.packsWaiting) > 0:
+            pack = self.packsWaiting.pop(0)
+            self.setExpansionFromString(pack)
+            self.readyForNextPack = False
+            self.lblSender.setText("%s passed: " % (self.whoFrom))
+    
+    def setExpansionFromString(self, expansion):
+        # Format is: abbreviation,index:abbreviation,index:...
+        if expansion == "":
+            self.lblWaiting.show()
+            self.lvCards.hide()
+        else:
+            self.lblWaiting.hide()
+            self.lvCards.show()
+        cards = expansion.split(':')
+        result = []
+        for card in cards:
+            parts = card.split(',')
+            if len(parts) < 2:
+                continue
+            result.append((parts[0],parts[1]))
+        self.availableModel.list = result
+        self.availableModel.reset()
+    
+    def stringForExpansion(self):
+        return ':'.join(["%s,%s" % (abbreviation,index) for abbreviation,index in self.availableModel.list])
+    
+    def closeEvent(self, event):
+        if QMessageBox.question(self, "Do you wish to exit?", "If you exit now, your deck will not be saved.", buttons=QMessageBox.Yes | QMessageBox.Cancel, defaultButton=QMessageBox.Cancel) == QMessageBox.Yes:
+            event.accept()
+        else:
+            event.ignore()
+    
+    def gameWasCanceled(self):
+        pass # To eliminate a crash report sent from Will
+
+def main():
+    for exp in sys.argv:
+        if exp in utilities.allExpansions:
+            app = QApplication(sys.argv)
+            d = DraftDialog(exp)
+            d.show()
+            d.raise_()
+            app.exec_()
+            break
+
+if __name__ == '__main__':
+    main()
