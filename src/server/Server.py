@@ -12,7 +12,7 @@ class Server:
     
     def run(self, service, port, startingMsg = "Starting server...."):
         processor = service.Processor(self)
-        transport = TSocket.TServerSocket(port=port)
+        transport = TSocket.TServerSocket(host="0.0.0.0", port=port)
         tfactory = TTransport.TBufferedTransportFactory()
         pfactory = TBinaryProtocol.TBinaryProtocolFactory()
         

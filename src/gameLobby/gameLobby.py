@@ -12,6 +12,8 @@ except OSError:
 
 import sys
 from QDeckAnalysis import QDeckAnalysis
+from QDeckEditor import QDeckEditor
+from QVisualDeckEditor import QVisualDeckEditor
 sys.path.append('../gen-py')
 
 from Networking import GLclient
@@ -65,6 +67,8 @@ class GameLobby(QMainWindow, Ui_MainWindow):
         bar = self.menuBar()
         tools = bar.addMenu("&Tools")
         tools.addAction("Deck Analyzer", self.showAnalysis)
+        tools.addAction("Deck Editor", self.showEditor)
+        tools.addAction("Visual Deck Editor", self.showVisualEditor)
         tools.addAction("Preferences",self.showSettings)
 
     def showSettings(self):
@@ -73,6 +77,14 @@ class GameLobby(QMainWindow, Ui_MainWindow):
 
     def showAnalysis(self):
         dialog = QDeckAnalysis(self)
+        dialog.show()
+
+    def showEditor(self):
+        dialog = QDeckEditor(self)
+        dialog.show()
+
+    def showVisualEditor(self):
+        dialog = QVisualDeckEditor(self)
         dialog.show()
 
     def displayWindow(self):
@@ -141,21 +153,6 @@ class GameLobby(QMainWindow, Ui_MainWindow):
 
 def maintenance():
     pass
-#     if not settingsManager.settings['hasMovedDecks']:
-#         try:
-#             os.mkdir(os.path.join('src','userdata','decks'))
-#         except OSError:
-#             pass # The directory was already created for some reason
-#         for file in os.listdir(os.path.join('src','userdata')):
-#             old = os.path.join('src','userdata',file)
-#             new = os.path.join('src','userdata','decks',file)
-#             if not file == "PTG.settings" and os.path.isfile(old):
-#                 try:
-#                     os.rename(old, new)
-#                 except:
-#                     import pdb;pdb.set_trace()
-#         settingsManager.settings['hasMovedDecks'] = True
-#         settingsManager.save()
 
 def testConnection():
     ableToRun = True
@@ -202,6 +199,7 @@ def main():
     app.setWindowIcon(QIcon(iconPath))
     result = 1
     if ableToRun:
+        settingsManager.save()
         lobbyWindow = GameLobby()
         result = app.exec_()
         lobbyWindow.client.disconnect()

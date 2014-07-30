@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>visualDeckEditor</class>
+ <widget class="QDialog" name="visualDeckEditor">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>640</width>
+    <height>480</height>
+   </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
+  </property>
+  <property name="windowTitle">
+   <string>Dialog</string>
+  </property>
+  <layout class="QHBoxLayout" name="horizontalLayout_2">
+   <item>
+    <widget class="QTabWidget" name="tabWidget">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+     <property name="currentIndex">
+      <number>0</number>
+     </property>
+     <widget class="QWidget" name="tabRed">
+      <attribute name="title">
+       <string>Red</string>
+      </attribute>
+     </widget>
+     <widget class="QWidget" name="tabGreen">
+      <attribute name="title">
+       <string>Green</string>
+      </attribute>
+     </widget>
+     <widget class="QWidget" name="tabBlue">
+      <attribute name="title">
+       <string>Blue</string>
+      </attribute>
+     </widget>
+     <widget class="QWidget" name="tabWhite">
+      <attribute name="title">
+       <string>White</string>
+      </attribute>
+     </widget>
+     <widget class="QWidget" name="tabBlack">
+      <attribute name="title">
+       <string>Black</string>
+      </attribute>
+     </widget>
+     <widget class="QWidget" name="tabMulticolor">
+      <attribute name="title">
+       <string>Multicolor</string>
+      </attribute>
+     </widget>
+     <widget class="QWidget" name="tabColorless">
+      <attribute name="title">
+       <string>Colorless</string>
+      </attribute>
+     </widget>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

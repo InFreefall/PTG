@@ -2,8 +2,8 @@
 
 # Form implementation generated from reading ui file 'deckEditor.ui'
 #
-# Created: Wed Feb 27 18:52:56 2013
-#      by: PyQt4 UI code generator 4.9.6
+# Created: Thu Jul 24 01:13:39 2014
+#      by: PyQt4 UI code generator 4.10.3
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -37,6 +37,9 @@ class Ui_DeckEditor(object):
         self.btnOpen = QtGui.QPushButton(DeckEditor)
         self.btnOpen.setObjectName(_fromUtf8("btnOpen"))
         self.horizontalLayout.addWidget(self.btnOpen)
+        self.btnNew = QtGui.QPushButton(DeckEditor)
+        self.btnNew.setObjectName(_fromUtf8("btnNew"))
+        self.horizontalLayout.addWidget(self.btnNew)
         spacerItem = QtGui.QSpacerItem(40, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
         self.horizontalLayout.addItem(spacerItem)
         self.btnSave = QtGui.QPushButton(DeckEditor)
@@ -50,5 +53,6 @@ class Ui_DeckEditor(object):
     def retranslateUi(self, DeckEditor):
         DeckEditor.setWindowTitle(_translate("DeckEditor", "Heavenly Inferno", None))
         self.btnOpen.setText(_translate("DeckEditor", "Open", None))
+        self.btnNew.setText(_translate("DeckEditor", "New", None))
         self.btnSave.setText(_translate("DeckEditor", "Save", None))
 

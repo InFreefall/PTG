@@ -16,12 +16,12 @@ if not os.path.isfile(SETTINGS_FILE):
 
 # Default values
 settings = {
-            'cardsDir':os.path.join('src','cards'),
+            'cardsDir':os.path.join('cards'),
             'imagesDir':'images',
             'hasMovedDecks':False,
-            'reportCrashes':True,
+            'reportCrashes':False,
             'switchOnPlayerMove':True,
-            'hostname':'maxthelizard.doesntexist.com',
+            'hostname':'ptg.duckdns.org',
             'randomize':False
             }
 def save():
