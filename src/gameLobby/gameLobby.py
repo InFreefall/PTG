@@ -1,5 +1,10 @@
 #!/Library/Frameworks/Python.framework/Versions/2.7/bin/python
 
+try:
+    import atexit
+except:
+    pass
+
 # Needs to be first - settingsManager tries to use this directory on import
 import os
 userdataPath = os.path.join('src','userdata','decks')
@@ -68,7 +73,7 @@ class GameLobby(QMainWindow, Ui_MainWindow):
         tools = bar.addMenu("&Tools")
         tools.addAction("Deck Analyzer", self.showAnalysis)
         tools.addAction("Deck Editor", self.showEditor)
-        tools.addAction("Visual Deck Editor", self.showVisualEditor)
+        # tools.addAction("Visual Deck Editor", self.showVisualEditor)
         tools.addAction("Preferences",self.showSettings)
 
     def showSettings(self):

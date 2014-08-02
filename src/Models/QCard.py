@@ -46,8 +46,15 @@ class QCard(object):
                     path = os.path.join(settingsManager.settings['cardsDir'],
                                         self.abbreviation,
                                         "%s.jpg"%(self.index))
+                    pngPath = os.path.join(settingsManager.settings['cardsDir'],
+                                        self.abbreviation,
+                                        "%s.png"%(self.index))
+                    print "Opening path {}".format(path)
                     if not os.path.isfile(path):
-                        cardCrawler.crawlCardAndInfo(self.abbreviation, self.index)
+                        if os.path.isfile(pngPath):
+                            path = pngPath
+                        else:
+                            cardCrawler.crawlCardAndInfo(self.abbreviation, self.index)
             else: # Card is upside down
                 if self.isFlipCard:
                     path = os.path.join(settingsManager.settings['cardsDir'],
@@ -60,6 +67,7 @@ class QCard(object):
                         path = os.path.join(settingsManager.settings['imagesDir'],'yugiohBack.jpg')
             # Resize card in case it is not already the correct height
             self._pixmap = QPixmap(path).scaledToHeight(445,Qt.SmoothTransformation)
+            print "%s" % QPixmap(path).isNull()
         if self.plusOneCounter is not 0:
             painter = QPainter(self._pixmap)
             painter.setBrush(QBrush(Qt.darkBlue))
@@ -70,6 +78,7 @@ class QCard(object):
             if (self.plusOneCounter < 0):
                 text = "%s/%s" % (self.plusOneCounter,self.plusOneCounter)
             painter.drawText(5,97,text)
+        print "returning pixmap: %s" % self._pixmap
         return self._pixmap
 
     def bottomPixmap(self):

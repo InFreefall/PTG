@@ -5,3 +5,8 @@ src/cards
 src/userdata*
 src/userdata/
 src/userdata/PTG.settings
+build/*
+dist/*
+build
+dist
+*.spec
