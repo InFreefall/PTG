@@ -1,2 +1,0 @@
-cd WinUpdate
-update.bat
