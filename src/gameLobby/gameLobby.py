@@ -41,7 +41,6 @@ from thrift.protocol import TBinaryProtocol
 
 from util import utilities
 import settingsManager
-import crashReporter
 
 class GameLobby(QMainWindow, Ui_MainWindow):
     def __init__(self, parent=None):
@@ -62,7 +61,6 @@ class GameLobby(QMainWindow, Ui_MainWindow):
             self.username = text
         else:
             self.username = "Anonymous"
-        crashReporter.username = self.username
         self.client.register(self.username)
 
         self.lvGames.setModel(self.client.gameModel)
@@ -183,8 +181,6 @@ def testConnection():
     return (ableToRun, versionMismatch)
 
 def main():
-    # In development, this causes more trouble than it's worth
-    # crashReporter.install_excepthook()
     maintenance()
     app = QApplication(sys.argv)
     ableToRun,versionMismatch = testConnection()
