@@ -67,7 +67,8 @@ class QDeckAnalysis(QDialog, Ui_DeckValidatorDialog):
             # Check for unknown cards
             try:
                 self.db.findCard(cardName)
-            except CardLookupException:
+            except CardLookupException, ex:
+                print "Got exception {} when looking up {}".format(ex, cardName)
                 try:
                     errors.index(cardName)
                 except ValueError:

@@ -9,6 +9,7 @@ import time
 from lobbyServer import LobbyHandler
 from ThriftServer import PTGHandler
 from DraftServer import DraftHandler
+from FileServer import FileServer
 
 class ServerThread(Thread):
     def __init__(self, sClass, port, message):
@@ -40,6 +41,7 @@ class ServerManager:
         self.servers['lobby'] = ServerThread(LobbyHandler, 42141, "Starting lobby...")
         self.servers['game'] = ServerThread(PTGHandler, 42142, "Starting game server...")
         #self.servers['draft'] = ServerThread(DraftHandler, 42140, "Starting draft handler...")
+        #self.servers['file'] = FileServer(42140)
         for server in self.servers.values():
             if server is not None:
                 server.start()

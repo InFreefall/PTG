@@ -66,7 +66,8 @@ def crawlCardAndInfo(abbreviation, index, addToDB=True, silent=False):
     soup = BeautifulSoup(page)
     print "Downloading (%s,%s)" % (abbreviation, index)
     for card in soup.findAll("tr", {"class" : ["odd", "even"]}):
-        if card.find("td", {"align":"right"}).contents[0] == "%s" % (index):
+        if card.find("td", {"align":"right"}).contents[0] == "%s" % (index) \
+           or card.find("td", {"align":"right"}).contents[0] == "%sa" % (index):
             crawlCard(abbreviation, card, addToDB, silent=silent)
     if addToDB:
         statedb.commonDB().commit()
@@ -114,9 +115,14 @@ def crawlCard(abbreviation, trTag, addToDB=True, downloadScan=True, silent=False
         pass
     index,workingIndex,cardName,cardType,manaCost,rarity,artist = cardInfoFromTrTag(trTag)
     scanUrl = "http://magiccards.info/scans/en/%s/%s.jpg" % (abbreviation, workingIndex)
+    dualUrl = "http://magiccards.info/scans/en/%s/%sa.jpg" % (abbreviation, workingIndex)
     localFileURL = os.path.join(settingsManager.settings['cardsDir'], abbreviation, '%s.jpg' % (index))
     if (downloadScan):
-        urllib.urlretrieve(scanUrl, localFileURL)
+        try:
+            urllib.urlretrieve(scanUrl, localFileURL)
+        except:
+            print "Could not download card from {}, maybe it is a dual card?".format(scanUrl)
+            urllib.urlretrieve(dualUrl, localFileURL)
 
     if addToDB:
         statedb.commonDB().addCard(index,cardName,cardType,manaCost,rarity,artist,localFileURL)

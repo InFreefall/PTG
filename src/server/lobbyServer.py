@@ -1,4 +1,7 @@
+import hashlib
+import json
 import logging
+import os
 import pdb
 import sys
 from PlayerBasedServer import PlayerBasedServer
@@ -12,6 +15,8 @@ from thrift.protocol import TBinaryProtocol
 from thrift.server import TServer
 
 LOG_FILENAME = 'LobbyServer.log'
+
+DIST_PATH = os.path.join('..','..','dist','PTG')
 
 class Draft:
     def __init__(self):
@@ -35,6 +40,7 @@ class LobbyHandler(PlayerBasedServer):
         self.greatestGameID = -1
         logging.basicConfig(level=logging.DEBUG)
         self.drafts = {}
+        self.getFileChecksums()
     
     def GLregisterPlayer(self, playerName):
         playerID = self.registerPlayer(playerName)
@@ -163,6 +169,31 @@ class LobbyHandler(PlayerBasedServer):
         e.data = [expansion, str(draft.playerToRightOf(playerID)), str(gameID)]
         e.sender = playerID
         self.addEvent(e)
+
+    def hashfile(self, afile, hasher, blocksize=65536):
+        buf = afile.read(blocksize)
+        while len(buf) > 0:
+            hasher.update(buf)
+            buf = afile.read(blocksize)
+        return hasher.hexdigest()
+        
+    def getFileChecksums(self):
+        result = []
+        with open(os.path.join(DIST_PATH, "files.lst")) as fList:
+            for fname in fList:
+                fname = fname.strip()
+                fpath = os.path.join(DIST_PATH, fname)
+                if not os.path.isfile(fpath):
+                    print "Error: could not open file {} from files.lst".format(fpath)
+                    continue
+                with open(fpath) as currentFile:
+                    fhash = self.hashfile(currentFile, hashlib.sha256())
+                    result.append( {'filename': fname,
+                                    'hash': fhash} )
+        outputJson = json.dumps(result)
+        with open(os.path.join(DIST_PATH, "files.json"), 'w') as outFile:
+            outFile.write(outputJson)
+        return outputJson
 
 if __name__ == "__main__":
     server = LobbyHandler()

@@ -72,7 +72,7 @@ class QVisualDeckEditor(QDialog, Ui_visualDeckEditor):
                     return False
             cardsOfColor = filter(filterFunc, cards)
                 
-            for card in cardsOfColor:
+            for card in cardsOfColor[:2]:
                 if color != 'Red':
                     break
                 cardURL = "http://mtgimage.com/multiverseid/%s.jpg" % \

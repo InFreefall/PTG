@@ -52,6 +52,7 @@ class QCard(object):
                     print "Opening path {}".format(path)
                     if not os.path.isfile(path):
                         if os.path.isfile(pngPath):
+                            print "Opening path {}".format(pngPath)
                             path = pngPath
                         else:
                             cardCrawler.crawlCardAndInfo(self.abbreviation, self.index)
@@ -78,7 +79,8 @@ class QCard(object):
             if (self.plusOneCounter < 0):
                 text = "%s/%s" % (self.plusOneCounter,self.plusOneCounter)
             painter.drawText(5,97,text)
-        print "returning pixmap: %s" % self._pixmap
+        # if self._pixmap is None or self._pixmap.isNull() and self.abbreviation == 'M15':
+            # Get debug info from Dan. Currently, can not reproduce.
         return self._pixmap
 
     def bottomPixmap(self):

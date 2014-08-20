@@ -72,6 +72,10 @@ service TGameLobby
     GLGame GLgetGame(1:i32 gameID),
     oneway void GLstartGame(1:i32 gameID),
     oneway void GLaddEvent(1:GLEvent event), // TODO: Find a way to use this
+
+    // Patcher support
+    string getFileChecksums(),
+    binary getFile(1:string filename),
     
     // Draft functions
     oneway void GLpassExpansion(1:i32 gameID, 2:i32 playerID, 3:string expansion),
